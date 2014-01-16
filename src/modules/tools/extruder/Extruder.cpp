@@ -154,13 +154,7 @@ void Extruder::on_gcode_received(void *argument){
 
     // Gcodes to pass along to on_gcode_execute
     if( ( gcode->has_m && (gcode->m == 17 || gcode->m == 18 || gcode->m == 82 || gcode->m == 83 || gcode->m == 84 || gcode->m == 92 ) ) || ( gcode->has_g && gcode->g == 92 && gcode->has_letter('E') ) || ( gcode->has_g && ( gcode->g == 90 || gcode->g == 91 ) ) ){
-        gcode->mark_as_taken();
-        if( THEKERNEL->conveyor->queue.size() == 0 ){
-            THEKERNEL->call_event(ON_GCODE_EXECUTE, gcode );
-        }else{
-            Block* block = THEKERNEL->conveyor->queue.get_ref( THEKERNEL->conveyor->queue.size() - 1 );
-            block->append_gcode(gcode);
-        }
+        THEKERNEL->conveyor->append_gcode(gcode);
     }
 
     // Add to the queue for on_gcode_execute to process
@@ -168,14 +162,8 @@ void Extruder::on_gcode_received(void *argument){
         if( !gcode->has_letter('X') && !gcode->has_letter('Y') && !gcode->has_letter('Z') ){
             // This is a solo move, we add an empty block to the queue
             //If the queue is empty, execute immediatly, otherwise attach to the last added block
-            if( THEKERNEL->conveyor->queue.size() == 0 ){
-                THEKERNEL->call_event(ON_GCODE_EXECUTE, gcode );
-                this->append_empty_block();
-            }else{
-                Block* block = THEKERNEL->conveyor->queue.get_ref( THEKERNEL->conveyor->queue.size() - 1 );
-                block->append_gcode(gcode);
-                this->append_empty_block();
-            }
+            THEKERNEL->conveyor->append_gcode(gcode);
+            this->append_empty_block();
         }
     }else{
         // This is for follow move
@@ -187,11 +175,8 @@ void Extruder::on_gcode_received(void *argument){
 Block* Extruder::append_empty_block(){
     THEKERNEL->conveyor->wait_for_queue(2);
     Block* block = THEKERNEL->conveyor->new_block();
-    block->planner = THEKERNEL->planner;
-    block->millimeters = 0;
-    block->steps[0] = 0;
-    block->steps[1] = 0;
-    block->steps[2] = 0;
+    // block cleared in new_block and everything set to default values (usually 0)
+
     // feed the block into the system. Will execute it if we are at the beginning of the queue
     block->ready();
 

@@ -87,14 +87,8 @@ void Stepper::on_gcode_received(void* argument){
     Gcode* gcode = static_cast<Gcode*>(argument);
     // Attach gcodes to the last block for on_gcode_execute
     if( gcode->has_m && (gcode->m == 84 || gcode->m == 17 || gcode->m == 18 )) {
-        gcode->mark_as_taken();
-        if( THEKERNEL->conveyor->queue.size() == 0 ){
-            THEKERNEL->call_event(ON_GCODE_EXECUTE, gcode );
-        }else{
-            Block* block = THEKERNEL->conveyor->queue.get_ref( THEKERNEL->conveyor->queue.size() - 1 );
-            block->append_gcode(gcode);
-        }
-    }  
+        THEKERNEL->conveyor->append_gcode(gcode);
+    }
 }
 
 // React to enable/disable gcodes
@@ -132,7 +126,7 @@ void Stepper::on_block_begin(void* argument){
     Block* block  = static_cast<Block*>(argument);
 
     // The stepper does not care about 0-blocks
-    if( block->millimeters == 0.0 ){ return; }
+    if( block->millimeters == 0.0F ){ return; }
 
     // Mark the new block as of interrest to us
     if( block->steps[ALPHA_STEPPER] > 0 || block->steps[BETA_STEPPER] > 0 || block->steps[GAMMA_STEPPER] > 0 ){
@@ -196,8 +190,8 @@ uint32_t Stepper::trapezoid_generator_tick( uint32_t dummy ) {
 
     // Do not do the accel math for nothing
     if(this->current_block && !this->paused && this->main_stepper->moving ) {
-       
-        // Store this here because we use it a lot down there 
+
+        // Store this here because we use it a lot down there
         uint32_t current_steps_completed = this->main_stepper->stepped;
 
         // Do not accel, just set the value
@@ -209,16 +203,16 @@ uint32_t Stepper::trapezoid_generator_tick( uint32_t dummy ) {
 
         // If we are accelerating
         if(current_steps_completed <= this->current_block->accelerate_until + 1) {
-            // Increase speed   
+            // Increase speed
             this->trapezoid_adjusted_rate += this->current_block->rate_delta;
               if (this->trapezoid_adjusted_rate > this->current_block->nominal_rate ) {
                   this->trapezoid_adjusted_rate = this->current_block->nominal_rate;
               }
               this->set_step_events_per_minute(this->trapezoid_adjusted_rate);
-        
-        // If we are decelerating 
+
+        // If we are decelerating
         }else if (current_steps_completed > this->current_block->decelerate_after) {
-             // Reduce speed  
+             // Reduce speed
              // NOTE: We will only reduce speed if the result will be > 0. This catches small
               // rounding errors that might leave steps hanging after the last trapezoid tick.
               if(this->trapezoid_adjusted_rate > this->current_block->rate_delta * 1.5) {
@@ -230,8 +224,8 @@ uint32_t Stepper::trapezoid_generator_tick( uint32_t dummy ) {
                   this->trapezoid_adjusted_rate = this->current_block->final_rate;
               }
               this->set_step_events_per_minute(this->trapezoid_adjusted_rate);
-        
-        // If we are cruising 
+
+        // If we are cruising
         }else {
               // Make sure we cruise at exactly nominal rate
               if (this->trapezoid_adjusted_rate != this->current_block->nominal_rate) {
