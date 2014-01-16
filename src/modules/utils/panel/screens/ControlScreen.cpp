@@ -48,7 +48,8 @@ void ControlScreen::on_refresh()
             this->pos[this->controlled_axis - 'X'] = this->panel->get_control_value();
             this->panel->lcd->setCursor(0, 2);
             this->display_axis_line(this->controlled_axis);
-            this->pos_changed = true; // make the gcode in main_loop
+            if(this->pos[this->controlled_axis - 'X'] > 0)
+                this->pos_changed = true; // make the gcode in main_loop
         }
 
     } else {

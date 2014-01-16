@@ -42,21 +42,16 @@ void PrepareScreen::on_refresh()
     }
 }
 
-<<<<<<< HEAD
-/***************** ORIGINAL EDGE **/
-=======
-/***************** ORIGINAL EDGE */
->>>>>>> 7bbe401d58a0b19d1581c7a93fed04f88ee60c23
 void PrepareScreen::display_menu_line(uint16_t line)
 {
     switch ( line ) {
         case 0: this->panel->lcd->printf("Back"           ); break;
         case 1: this->panel->lcd->printf("Home All Axis"  ); break;
-        case 3: this->panel->lcd->printf("Set Z0"         ); break;
-        case 4: this->panel->lcd->printf("Pre Heat"       ); break;
-        case 5: this->panel->lcd->printf("Cool Down"      ); break;
-        case 6: this->panel->lcd->printf("Extrude"        ); break;
-        case 7: this->panel->lcd->printf("Motors off"     ); break;
+        case 2: this->panel->lcd->printf("Set Z0"         ); break;
+        case 3: this->panel->lcd->printf("Pre Heat"       ); break;
+        case 4: this->panel->lcd->printf("Cool Down"      ); break;
+        case 5: this->panel->lcd->printf("Extrude"        ); break;
+        case 6: this->panel->lcd->printf("Motors off"     ); break;
             //case 8: this->panel->lcd->printf("Set Temperature"); break;
     }
 }
@@ -66,12 +61,11 @@ void PrepareScreen::clicked_menu_entry(uint16_t line)
     switch ( line ) {
         case 0: this->panel->enter_screen(this->parent); break;
         case 1: command = "G28"; break;
-        case 2: command = "G92 X0 Y0 Z0"; break;
-        case 3: command = "G92 Z0"; break;
-        case 4: this->preheat(); break;
-        case 5: this->cooldown(); break;
-        case 6: this->panel->enter_screen(this->extruder_screen); break;
-        case 7: command = "M84"; break;
+        case 2: command = "G92 Z0"; break;
+        case 3: this->preheat(); break;
+        case 4: this->cooldown(); break;
+        case 5: this->panel->enter_screen(this->extruder_screen); break;
+        case 6: command = "M84"; break;
             //case 8: this->panel->enter_screen(this->temp_screen      ); break;
     }
 }
