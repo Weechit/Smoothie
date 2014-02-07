@@ -6,13 +6,16 @@
 */
 
 
+#include "StepTicker.h"
 
 using namespace std;
 #include <vector>
+
 #include "libs/nuts_bolts.h"
 #include "libs/Module.h"
 #include "libs/Kernel.h"
-#include "StepTicker.h"
+#include "StepperMotor.h"
+
 #include "system_LPC17xx.h" // mbed.h lib
 
 #include <mri.h>
@@ -125,7 +128,7 @@ inline void StepTicker::reset_tick(){
     for (i = 0, bm = 1; i < 12; i++, bm <<= 1)
     {
         if (this->active_motor_bm & bm)
-            this->active_motors[i]->step_pin->set(0);
+            this->active_motors[i]->unstep();
     }
 
     _isr_context = false;

@@ -5,11 +5,15 @@
     You should have received a copy of the GNU General Public License along with Smoothie. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "Extruder.h"
+
 #include "libs/Module.h"
 #include "libs/Kernel.h"
+
 #include "modules/robot/Conveyor.h"
 #include "modules/robot/Block.h"
-#include "modules/tools/extruder/Extruder.h"
+#include "StepperMotor.h"
+
 #include <mri.h>
 
 #define extruder_module_enable_checksum      CHECKSUM("extruder_module_enable")
@@ -49,9 +53,6 @@ void Extruder::on_module_loaded() {
     // Settings
     this->on_config_reload(this);
 
-    // We start with the enable pin off
-    this->en_pin.set(1);
-
     // We work on the same Block as Stepper, so we need to know when it gets a new one and drops one
     register_for_event(ON_CONFIG_RELOAD);
     this->register_for_event(ON_BLOCK_BEGIN);
@@ -74,7 +75,7 @@ void Extruder::on_module_loaded() {
     THEKERNEL->slow_ticker->attach( THEKERNEL->stepper->acceleration_ticks_per_second , this, &Extruder::acceleration_tick );
 
     // Stepper motor object for the extruder
-    this->stepper_motor  = THEKERNEL->step_ticker->add_stepper_motor( new StepperMotor(&step_pin, &dir_pin, &en_pin) );
+    this->stepper_motor  = THEKERNEL->step_ticker->add_stepper_motor( new StepperMotor(step_pin, dir_pin, en_pin) );
     this->stepper_motor->attach(this, &Extruder::stepper_motor_finished_move );
 
 }
@@ -107,9 +108,6 @@ void Extruder::on_config_reload(void* argument){
         this->en_pin.from_string(           THEKERNEL->config->value(extruder_checksum, this->identifier, en_pin_checksum            )->by_default("nc" )->as_string())->as_output();
 
     }
-
-    // disable by default
-    this->en_pin.set(1);
 
 }
 
@@ -154,55 +152,20 @@ void Extruder::on_gcode_received(void *argument){
 
     // Gcodes to pass along to on_gcode_execute
     if( ( gcode->has_m && (gcode->m == 17 || gcode->m == 18 || gcode->m == 82 || gcode->m == 83 || gcode->m == 84 || gcode->m == 92 ) ) || ( gcode->has_g && gcode->g == 92 && gcode->has_letter('E') ) || ( gcode->has_g && ( gcode->g == 90 || gcode->g == 91 ) ) ){
-        gcode->mark_as_taken();
-        if( THEKERNEL->conveyor->queue.size() == 0 ){
-            THEKERNEL->call_event(ON_GCODE_EXECUTE, gcode );
-        }else{
-            Block* block = THEKERNEL->conveyor->queue.get_ref( THEKERNEL->conveyor->queue.size() - 1 );
-            block->append_gcode(gcode);
-        }
+        THEKERNEL->conveyor->append_gcode(gcode);
     }
 
     // Add to the queue for on_gcode_execute to process
     if( gcode->has_g && gcode->g < 4 && gcode->has_letter('E') ){
         if( !gcode->has_letter('X') && !gcode->has_letter('Y') && !gcode->has_letter('Z') ){
-            // This is a solo move, we add an empty block to the queue
-            //If the queue is empty, execute immediatly, otherwise attach to the last added block
-            if( THEKERNEL->conveyor->queue.size() == 0 ){
-                THEKERNEL->call_event(ON_GCODE_EXECUTE, gcode );
-                this->append_empty_block();
-            }else{
-                Block* block = THEKERNEL->conveyor->queue.get_ref( THEKERNEL->conveyor->queue.size() - 1 );
-                block->append_gcode(gcode);
-                this->append_empty_block();
-            }
+            THEKERNEL->conveyor->append_gcode(gcode);
+            // This is a solo move, we add an empty block to the queue to prevent subsequent gcodes being executed at the same time
+            THEKERNEL->conveyor->queue_head_block();
         }
     }else{
         // This is for follow move
 
     }
-}
-
-// Append an empty block in the queue so that solo mode can pick it up
-Block* Extruder::append_empty_block(){
-    THEKERNEL->conveyor->wait_for_queue(2);
-    Block* block = THEKERNEL->conveyor->new_block();
-    block->planner = THEKERNEL->planner;
-    // TODO these need to be cleared in the new_block() call
-    block->millimeters = 0;
-    block->steps[0] = 0;
-    block->steps[1] = 0;
-    block->steps[2] = 0;
-    block->entry_speed= 0;
-    block->max_entry_speed= 0;
-    block->steps_event_count= 0;
-    block->nominal_length_flag= true;
-    block->recalculate_flag= false;
-
-    // feed the block into the system. Will execute it if we are at the beginning of the queue
-    block->ready();
-
-    return block;
 }
 
 // Compute extrusion speed based on parameters and gcode distance of travel
@@ -270,10 +233,9 @@ void Extruder::on_gcode_execute(void* argument){
             }
             if (gcode->has_letter('F'))
             {
-                this->feed_rate = gcode->get_value('F');
-                if (this->feed_rate > (this->max_speed * THEKERNEL->robot->seconds_per_minute))
-                    this->feed_rate = this->max_speed * THEKERNEL->robot->seconds_per_minute;
-                feed_rate /= THEKERNEL->robot->seconds_per_minute;
+                feed_rate = gcode->get_value('F') / THEKERNEL->robot->seconds_per_minute;
+                if (feed_rate > max_speed)
+                    feed_rate = max_speed;
             }
         }else if( gcode->g == 90 ){ this->absolute_mode = true;
         }else if( gcode->g == 91 ){ this->absolute_mode = false;
@@ -366,7 +328,7 @@ uint32_t Extruder::acceleration_tick(uint32_t dummy){
     if( current_rate > target_rate ){ current_rate = target_rate; }
 
     // steps per second
-    this->stepper_motor->set_speed(max(current_rate, THEKERNEL->stepper->minimum_steps_per_minute/60));
+    this->stepper_motor->set_speed(max(current_rate, THEKERNEL->stepper->minimum_steps_per_second));
 
     return 0;
 }
@@ -378,15 +340,15 @@ void Extruder::on_speed_change( void* argument ){
     if( this->current_block == NULL ||  this->paused || this->mode != FOLLOW || this->stepper_motor->moving != true ){ return; }
 
     /*
-    * nominal block duration = current block's steps / ( current block's nominal rate / 60 )
+    * nominal block duration = current block's steps / ( current block's nominal rate )
     * nominal extruder rate = extruder steps / nominal block duration
-    * actual extruder rate = nominal extruder rate * ( ( stepper's steps per minute / 60 ) / ( current block's nominal rate / 60 ) )
-    * or actual extruder rate = ( ( extruder steps * ( current block's nominal_rate / 60 ) ) / current block's steps ) * ( ( stepper's steps per minute / 60 ) / ( current block's nominal rate / 60 ) )
-    * or simplified : extruder steps * ( stepper's steps per minute / 60 ) ) / current block's steps
-    * or even : ( stepper steps per minute / 60 ) * ( extruder steps / current block's steps )
+    * actual extruder rate = nominal extruder rate * ( ( stepper's steps per second ) / ( current block's nominal rate ) )
+    * or actual extruder rate = ( ( extruder steps * ( current block's nominal_rate ) ) / current block's steps ) * ( ( stepper's steps per second ) / ( current block's nominal rate ) )
+    * or simplified : extruder steps * ( stepper's steps per second ) ) / current block's steps
+    * or even : ( stepper steps per second ) * ( extruder steps / current block's steps )
     */
 
-    this->stepper_motor->set_speed( max( ( THEKERNEL->stepper->trapezoid_adjusted_rate /60.0) * ( (float)this->stepper_motor->steps_to_move / (float)this->current_block->steps_event_count ), THEKERNEL->stepper->minimum_steps_per_minute/60.0 ) );
+    this->stepper_motor->set_speed( max( ( THEKERNEL->stepper->trapezoid_adjusted_rate) * ( (float)this->stepper_motor->steps_to_move / (float)this->current_block->steps_event_count ), THEKERNEL->stepper->minimum_steps_per_second ) );
 
 }
 
