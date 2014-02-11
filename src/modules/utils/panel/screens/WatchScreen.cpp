@@ -235,7 +235,7 @@ const char *WatchScreen::get_status()
     if (panel->is_playing())
         return panel->get_playing_file();
 
-    return "Smoothie ready";
+    return "Zmorph ready";
 }
 
 void WatchScreen::set_speed()
