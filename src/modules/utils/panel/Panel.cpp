@@ -258,10 +258,11 @@ void Panel::on_idle(void *argument)
         string build(v.get_build());
         string date(v.get_build_date());
         this->lcd->clear();
-        this->lcd->setCursor(0, 0); this->lcd->printf("Personal Fabricator");
-        this->lcd->setCursor(0, 1); this->lcd->printf("Build date:");
-        this->lcd->setCursor(0, 2); this->lcd->printf("%s", date.substr(0, 20).c_str());
-        this->lcd->setCursor(0, 3); this->lcd->printf("Please wait....");
+        this->lcd->setCursor(0, 0); this->lcd->printf("Welcome to Zmorph3D");
+        this->lcd->setCursor(0, 1); this->lcd->printf("Personal Fabricator");
+        this->lcd->setCursor(0, 2); this->lcd->printf("Build date:");
+        this->lcd->setCursor(0, 3); this->lcd->printf("%s", date.substr(0, 20).c_str());
+        this->lcd->setCursor(0, 4); this->lcd->printf("Please wait....");
 
         if (this->lcd->hasGraphics()) {
             this->lcd->bltGlyph(24, 40, ohw_logo_antipixel_width, ohw_logo_antipixel_height, ohw_logo_antipixel_bits);
