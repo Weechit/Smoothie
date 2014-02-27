@@ -11,7 +11,7 @@ beta_steps_per_mm                            76.19                # Steps per mm
 gamma_steps_per_mm                           3200             # Steps per mm for gamma stepper
 
 # Planner module configuration : Look-ahead and acceleration configuration
-planner_queue_size                           64               # Size of the planning queue, must be a power of 2. 128 seems to be the maximum.
+planner_queue_size                           32               # Size of the planning queue, must be a power of 2. 128 seems to be the maximum.
 acceleration                                 1500             # Acceleration in mm/second/second.
 acceleration_ticks_per_second                1000             # Number of times per second the speed is updated
 junction_deviation                           0.05             # Similar to the old "max_jerk", in millimeters, see : https://github.com/grbl/grbl/blob/master/planner.c#L409
@@ -71,7 +71,7 @@ laser_module_enable                          false            # Whether to activ
 temperature_control.hotend.enable            true             # Whether to activate this ( "hotend" ) module at all. All configuration is ignored if false.
 temperature_control.hotend.thermistor_pin    0.23             # Pin for the thermistor to read
 temperature_control.hotend.heater_pin        2.5              # Pin that controls the heater
-temperature_control.hotend.beta              4390             # RRRF100K see src/modules/tools/temperturecontrol/TemperatureControl.cpp:64 for a list of valid thermistor names
+temperature_control.hotend.beta              4700             # RRRF100K see src/modules/tools/temperturecontrol/TemperatureControl.cpp:64 for a list of valid thermistor names
 temperature_control.hotend.set_m_code        104              #
 temperature_control.hotend.set_and_wait_m_code 109            #
 temperature_control.hotend.designator        T                #
@@ -160,8 +160,11 @@ panel.down_button_pin                        1.30!             #
 panel.click_button_pin                       2.11!             #
 #panel.encoder_a_pin                         nc                #
 #panel.encoder_b_pin                         nc                #
-panel.hotend_temperature                     190
-panel.hotbed_temperature                     60
+panel.hotend_temperature                     200
+panel.hotbed_temperature                     100
+panel.longpress_delay                        50
+
+
 
 leds_disable                                 true             # disable using leds after config loaded
 
@@ -193,7 +196,7 @@ custom_menu.preheatA.command               M104_S245|M140_S120     #
 
 custom_menu.preheatP.enable                true              #
 custom_menu.preheatP.name                  Preheat_PLA          #
-custom_menu.preheatP.command               M104_S220|M140_S60     #
+custom_menu.preheatP.command               M104_S210|M140_S60     #
 
 custom_menu.Extrude.enable                true              #
 custom_menu.Extrude.name                  Extrude_5mm          #
@@ -227,7 +230,7 @@ network.webserver.enable                     true             # enable the webse
 network.telnet.enable                        true             # enable the telnet server
 network.ip_address                           auto             # use dhcp to get ip address
 # uncomment the 3 below to manually setup ip address
-#network.ip_address                           192.168.1.105    # the IP address
+#network.ip_address                           192.168.1.101    # the IP address
 #network.ip_mask                              255.255.255.0    # the ip mask
 #network.ip_gateway                           192.168.3.1      # the gateway address
 #network.mac_override                         xx.xx.xx.xx.xx.xx  # override the mac address, only do this if you have a conflict
