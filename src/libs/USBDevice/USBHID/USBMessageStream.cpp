@@ -14,7 +14,7 @@ USBMessageStream::USBMessageStream() :
 		USB_VENDOR_ID,
 		USB_PRODUCT_ID,
 		USB_PRODUCT_RELEASE,
-		false) {}
+		true) {}
 
 void USBMessageStream::on_module_loaded()
 {
@@ -33,6 +33,7 @@ void USBMessageStream::on_main_loop(void *argument)
         message.stream = this;
         THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message);
 	}
+	puts("sabaka\n");
 }
 
 int USBMessageStream::puts(const char *str)

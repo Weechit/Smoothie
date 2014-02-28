@@ -24,13 +24,16 @@
 #include "USBHAL.h"
 #include "USBHID.h"
 
+#include "libs/Kernel.h"
 
 USBHID::USBHID(uint8_t output_report_length, uint8_t input_report_length, uint16_t vendor_id, uint16_t product_id, uint16_t product_release, bool connect): USBDevice(/*vendor_id, product_id, product_release*/)
 {
     output_length = output_report_length;
     input_length = input_report_length;
     if(connect) {
+        THEKERNEL->streams->printf("preparing to connect USB device...\n");
         USBDevice::connect();
+        THEKERNEL->streams->printf("USB device connected!\n");
     }
 }
 

@@ -19,8 +19,6 @@
 #ifndef USB_HID_H
 #define USB_HID_H
 
-#include "USB.h"
-
 /* These headers are included for child class. */
 #include "USBEndpoints.h"
 #include "USBDescriptor.h"
@@ -48,7 +46,7 @@
  * @endcode
  */
 
-class USBHID: public USB_Endpoint_Receiver {
+class USBHID: public USBDevice {
 public:
 
     /**
@@ -61,7 +59,7 @@ public:
     * @param product_release Your preoduct_release
     * @param connect Connect the device
     */
-    USBHID(USB *, uint8_t output_report_length = 64, uint8_t input_report_length = 64);
+    USBHID(uint8_t output_report_length = 64, uint8_t input_report_length = 64, uint16_t vendor_id = 0x1234, uint16_t product_id = 0x0006, uint16_t product_release = 0x0001, bool connect = true);
 
 
     /**
@@ -163,11 +161,6 @@ protected:
     * @returns true if class handles this request
     */
     virtual bool USBCallback_setConfiguration(uint8_t configuration);
-
-    virtual void on_attach(void);
-    virtual void on_detach(void);
-
-    USB *usb;
 
 private:
     HID_REPORT outputReport;

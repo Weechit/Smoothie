@@ -52,12 +52,12 @@
 SDCard sd(P0_9, P0_8, P0_7, P0_6);      // this selects SPI1 as the sdcard as it is on Smoothieboard
 //SDCard sd(P0_18, P0_17, P0_15, P0_16);  // this selects SPI0 as the sdcard
 
-USB u;
-USBSerial usbserial(&u);
-USBMessageStream usbmessagestream;
-USBMSD msc(&u, &sd);
+//USB u;
+//USBSerial usbserial(&u);
+USBMessageStream *usbmessagestream;
+//USBMSD msc(&u, &sd);
 //USBMSD *msc= NULL;
-DFU dfu(&u);
+//DFU dfu(&u);
 
 SDFAT mounter("sd", &sd);
 
@@ -116,7 +116,7 @@ int main() {
 #endif
 
     // Create and initialize USB stuff
-    u.init();
+    //u.init();
     //if(sdok) { // only do this if there is an sd disk
     //    msc= new USBMSD(&u, &sd);
     //    kernel->add_module( msc );
@@ -126,18 +126,25 @@ int main() {
     //     kernel->add_module( msc );
     // }
 
-    kernel->add_module( &msc );
+    //kernel->add_module( &msc );
     //kernel->add_module( &usbserial );
-    kernel->add_module( &usbmessagestream );
+
+    kernel->streams->printf("creating USBMessageStream...\n");
+
+    usbmessagestream = new USBMessageStream();
+
+    kernel->streams->printf("Created!\n");
+
+    kernel->add_module( usbmessagestream );
 
     //debug
     kernel->streams->printf("loaded usbmessagestream\n");
 
-    if( kernel->config->value( second_usb_serial_enable_checksum )->by_default(false)->as_bool() ){
-        kernel->add_module( new USBSerial(&u) );
-    }
-    kernel->add_module( &dfu );
-    kernel->add_module( &u );
+    //if( kernel->config->value( second_usb_serial_enable_checksum )->by_default(false)->as_bool() ){
+    //    kernel->add_module( new USBSerial(&u) );
+    //}
+    //kernel->add_module( &dfu );
+    //kernel->add_module( &u );
 
     // clear up the config cache to save some memory
     kernel->config->config_cache_clear();
