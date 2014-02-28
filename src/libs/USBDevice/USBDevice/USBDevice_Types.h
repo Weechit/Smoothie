@@ -19,6 +19,8 @@
 #ifndef USBDEVICE_TYPES_H
 #define USBDEVICE_TYPES_H
 
+#include <cstdint>
+
 /* Standard requests */
 #define GET_STATUS        (0)
 #define CLEAR_FEATURE     (1)
@@ -49,7 +51,7 @@
 
 /* Descriptors */
 #define DESCRIPTOR_TYPE(wValue)  (wValue >> 8)
-#define DESCRIPTOR_INDEX(wValue) (wValue & 0xff)
+#define DESCRIPTOR_INDEX(wValue) (wValue & 0xf)
 
 typedef struct {
     struct {
@@ -66,7 +68,7 @@ typedef struct {
 typedef struct {
     SETUP_PACKET setup;
     uint8_t *ptr;
-    uint32_t remaining;
+    int32_t remaining;
     uint8_t direction;
     bool zlp;
     bool notify;
