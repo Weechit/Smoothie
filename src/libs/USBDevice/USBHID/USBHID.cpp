@@ -16,24 +16,17 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-
-//#include "stdint.h"
+#include "stdint.h"
 #include "USBHAL.h"
 #include "USBHID.h"
 
-#include "libs/Kernel.h"
 
-USBHID::USBHID(uint8_t output_report_length, uint8_t input_report_length, uint16_t vendor_id, uint16_t product_id, uint16_t product_release, bool connect): USBDevice(/*vendor_id, product_id, product_release*/)
+USBHID::USBHID(uint8_t output_report_length, uint8_t input_report_length, uint16_t vendor_id, uint16_t product_id, uint16_t product_release, bool connect): USBDevice(vendor_id, product_id, product_release)
 {
     output_length = output_report_length;
     input_length = input_report_length;
     if(connect) {
-        THEKERNEL->streams->printf("preparing to connect USB device...\n");
         USBDevice::connect();
-        THEKERNEL->streams->printf("USB device connected!\n");
     }
 }
 
@@ -105,7 +98,7 @@ bool USBHID::USBCallback_request() {
                 switch (DESCRIPTOR_TYPE(transfer->setup.wValue))
                 {
                     case REPORT_DESCRIPTOR:
-                        if ((reportDesc()) \
+                        if ((reportDesc() != NULL) \
                             && (reportDescLength() != 0))
                         {
                             transfer->remaining = reportDescLength();
@@ -117,7 +110,7 @@ bool USBHID::USBCallback_request() {
                     case HID_DESCRIPTOR:
                             // Find the HID descriptor, after the configuration descriptor
                             hidDescriptor = findDescriptor(HID_DESCRIPTOR);
-                            if (hidDescriptor)
+                            if (hidDescriptor != NULL)
                             {
                                 transfer->remaining = HID_DESCRIPTOR_LENGTH;
                                 transfer->ptr = hidDescriptor;

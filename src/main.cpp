@@ -30,12 +30,12 @@
 // Debug
 #include "libs/SerialMessage.h"
 
-#include "libs/USBDevice/USB.h"
-#include "libs/USBDevice/USBMSD/USBMSD.h"
-#include "libs/USBDevice/USBMSD/SDCard.h"
-#include "libs/USBDevice/USBSerial/USBSerial.h"
+//#include "libs/USBDevice/USB.h"
+//#include "libs/USBDevice/USBMSD/USBMSD.h"
+//#include "libs/USBDevice/USBMSD/SDCard.h"
+//#include "libs/USBDevice/USBSerial/USBSerial.h"
 #include "libs/USBDevice/USBHID/USBMessageStream.h"
-#include "libs/USBDevice/DFU.h"
+//#include "libs/USBDevice/DFU.h"
 #include "libs/SDFAT.h"
 
 #include "libs/Watchdog.h"

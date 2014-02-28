@@ -19,8 +19,6 @@
 #ifndef USBENDPOINTS_H
 #define USBENDPOINTS_H
 
-#include "USBDevice_Types.h"
-
 /* SETUP packet size */
 #define SETUP_PACKET_SIZE (8)
 
@@ -38,37 +36,17 @@ typedef enum {
     EP_STALLED,     /* Endpoint stalled */
 } EP_STATUS;
 
-class USB_State_Receiver {
-public:
-    virtual bool USBEvent_busReset(void) = 0;
-    virtual bool USBEvent_connectStateChanged(bool connected) = 0;
-    virtual bool USBEvent_suspendStateChanged(bool suspended) = 0;
-};
-
-class USB_Frame_Receiver {
-public:
-    virtual bool USBEvent_Frame(uint16_t) = 0;
-};
-
-class USB_Class_Receiver {
-public:
-    virtual bool USBEvent_Request(CONTROL_TRANSFER&) = 0;
-    virtual bool USBEvent_RequestComplete(CONTROL_TRANSFER&, uint8_t *buf, uint32_t length) = 0;
-};
-
-class USB_Endpoint_Receiver : public USB_Class_Receiver {
-public:
-    virtual bool USBEvent_EPIn(uint8_t, uint8_t) = 0;
-    virtual bool USBEvent_EPOut(uint8_t, uint8_t) = 0;
-};
-
 /* Include configuration for specific target */
-#if defined(TARGET_LPC1768) || defined(TARGET_LPC2368) || defined(__LPC17XX__)
-    #include "USBEndpoints_LPC17_LPC23.h"
-#elif defined(TARGET_LPC11U24)
-    #include "USBEndpoints_LPC11U.h"
+#if defined(TARGET_LPC1768) || defined(TARGET_LPC2368) || defined(TARGET_LPC4088)
+#include "USBEndpoints_LPC17_LPC23.h"
+#elif defined(TARGET_LPC11UXX) || defined(TARGET_LPC1347)
+#include "USBEndpoints_LPC11U.h"
+#elif defined(TARGET_KL25Z) | defined(TARGET_KL46Z) | defined(TARGET_K20D5M)
+#include "USBEndpoints_KL25Z.h"
+#elif defined (TARGET_STM32F4XX)
+#include "USBEndpoints_STM32F4.h"
 #else
-    #error "Unknown target type"
+#error "Unknown target type"
 #endif
 
 #endif

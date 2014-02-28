@@ -16,7 +16,7 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#define NUMBER_OF_LOGICAL_ENDPOINTS (5)
+#define NUMBER_OF_LOGICAL_ENDPOINTS (4)
 #define NUMBER_OF_PHYSICAL_ENDPOINTS (NUMBER_OF_LOGICAL_ENDPOINTS * 2)
 
 /* Define physical endpoint numbers */
@@ -31,8 +31,6 @@
 #define EP2IN       (5)  /* Int/Bulk/Iso  64/64/1023  Yes           */
 #define EP3OUT      (6)  /* Int/Bulk/Iso  64/64/1023  Yes           */
 #define EP3IN       (7)  /* Int/Bulk/Iso  64/64/1023  Yes           */
-#define EP4OUT      (8)  /* Int/Bulk/Iso  64/64/1023  Yes           */
-#define EP4IN       (9)  /* Int/Bulk/Iso  64/64/1023  Yes           */
 
 /* Maximum Packet sizes */
 
@@ -40,12 +38,10 @@
 #define MAX_PACKET_SIZE_EP1 (64) /* Int/Bulk */
 #define MAX_PACKET_SIZE_EP2 (64) /* Int/Bulk */
 #define MAX_PACKET_SIZE_EP3 (64) /* Int/Bulk */
-#define MAX_PACKET_SIZE_EP4 (64) /* Int/Bulk */
 
 #define MAX_PACKET_SIZE_EP1_ISO (1023) /* Isochronous */
 #define MAX_PACKET_SIZE_EP2_ISO (1023) /* Isochronous */
 #define MAX_PACKET_SIZE_EP3_ISO (1023) /* Isochronous */
-#define MAX_PACKET_SIZE_EP4_ISO (1023) /* Isochronous */
 
 /* Generic endpoints - intended to be portable accross devices */
 /* and be suitable for simple USB devices. */

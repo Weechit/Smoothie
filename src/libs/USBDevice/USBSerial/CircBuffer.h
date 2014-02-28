@@ -19,25 +19,22 @@
 #ifndef CIRCBUFFER_H
 #define CIRCBUFFER_H
 
-#include <stdlib.h>
-#include "sLPC17xx.h"
-#include "platform_memory.h"
-
 template <class T>
 class CircBuffer {
 public:
     CircBuffer(int length) {
         write = 0;
         read = 0;
-        size = length;
-        buf = (uint8_t*) AHB0.alloc(size * sizeof(T));
+        size = length + 1;
+        buf = (T *)malloc(size * sizeof(T));
     };
 
-	bool isFull() {
-		__disable_irq();
-		bool b= ((write + 1) % size == read);
-		__enable_irq();
-		return b;
+    ~CircBuffer() {
+        free(buf);
+     }
+
+    bool isFull() {
+        return ((write + 1) % size == read);
     };
 
     bool isEmpty() {
@@ -45,29 +42,17 @@ public:
     };
 
     void queue(T k) {
-		__disable_irq();
         if (isFull()) {
             read++;
             read %= size;
         }
         buf[write++] = k;
         write %= size;
-		__enable_irq();
     }
 
     uint16_t available() {
-		__disable_irq();
-		uint16_t i= (write >= read) ? write - read : (size - read) + write;
-		__enable_irq();
-		return i;
+        return (write >= read) ? write - read : size - read + write;
     };
-    uint16_t free() {
-        return size - available() - 1;
-    };
-
-    void dump() {
-        iprintf("[RingBuffer Sz:%2d Rd:%2d Wr:%2d Av:%2d Fr:%2d]\n", size, read, write, available(), free());
-    }
 
     bool dequeue(T * c) {
         bool empty = isEmpty();
@@ -77,15 +62,6 @@ public:
         }
         return(!empty);
     };
-
-    void peek(T * c, int offset) {
-        int h = (read + offset) % size;
-        *c = buf[h];
-    };
-
-    void flush() {
-        read = write;
-    }
 
 private:
     volatile uint16_t write;

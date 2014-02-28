@@ -16,12 +16,17 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifdef TARGET_LPC11U24
+#if defined(TARGET_LPC11U24) || defined(TARGET_LPC11U35_401) || defined(TARGET_LPC1347)
+
+#if defined(TARGET_LPC1347)
+#define USB_IRQ USB_IRQ_IRQn
+#elif defined(TARGET_LPC11U24) || defined(TARGET_LPC11U35_401)
+#define USB_IRQ USB_IRQn
+#endif
 
 #include "USBHAL.h"
 
 USBHAL * USBHAL::instance;
-
 
 // Valid physical endpoint numbers are 0 to (NUMBER_OF_PHYSICAL_ENDPOINTS-1)
 #define LAST_PHYSICAL_ENDPOINT (NUMBER_OF_PHYSICAL_ENDPOINTS-1)
@@ -82,22 +87,22 @@ static volatile int epComplete = 0;
 // One entry for a double-buffered logical endpoint in the endpoint
 // command/status list. Endpoint 0 is single buffered, out[1] is used
 // for the SETUP packet and in[1] is not used
-typedef __packed struct {
+typedef struct {
     uint32_t out[2];
     uint32_t in[2];
-} EP_COMMAND_STATUS;
+} PACKED EP_COMMAND_STATUS;
 
-typedef __packed struct {
+typedef struct {
     uint8_t out[MAX_PACKET_SIZE_EP0];
     uint8_t in[MAX_PACKET_SIZE_EP0];
     uint8_t setup[SETUP_PACKET_SIZE];
-} CONTROL_TRANSFER;
+} PACKED CONTROL_TRANSFER;
 
-typedef __packed struct {
+typedef struct {
     uint32_t    maxPacket;
     uint32_t    buffer[2];
     uint32_t    options;
-} EP_STATE;
+} PACKED EP_STATE;
 
 static volatile EP_STATE endpointState[NUMBER_OF_PHYSICAL_ENDPOINTS];
 
@@ -128,8 +133,23 @@ void USBMemCopy(uint8_t *dst, uint8_t *src, uint32_t size) {
 
 
 USBHAL::USBHAL(void) {
-    NVIC_DisableIRQ(USB_IRQn);
+    NVIC_DisableIRQ(USB_IRQ);
+    
+    // fill in callback array
+    epCallback[0] = &USBHAL::EP1_OUT_callback;
+    epCallback[1] = &USBHAL::EP1_IN_callback;
+    epCallback[2] = &USBHAL::EP2_OUT_callback;
+    epCallback[3] = &USBHAL::EP2_IN_callback;
+    epCallback[4] = &USBHAL::EP3_OUT_callback;
+    epCallback[5] = &USBHAL::EP3_IN_callback;
+    epCallback[6] = &USBHAL::EP4_OUT_callback;
+    epCallback[7] = &USBHAL::EP4_IN_callback;
 
+    #if defined(TARGET_LPC11U35_401)
+    // USB_VBUS input with pull-down
+    LPC_IOCON->PIO0_3 = 0x00000009;
+    #endif
+    
     // nUSB_CONNECT output
     LPC_IOCON->PIO0_6 = 0x00000001;
 
@@ -175,32 +195,34 @@ USBHAL::USBHAL(void) {
     instance = this;
 
     //attach IRQ handler and enable interrupts
-    NVIC_SetVector(USB_IRQn, (uint32_t)&_usbisr);
-    NVIC_EnableIRQ(USB_IRQn);
+    NVIC_SetVector(USB_IRQ, (uint32_t)&_usbisr);
 }
 
 USBHAL::~USBHAL(void) {
     // Ensure device disconnected (DCON not set)
     LPC_USB->DEVCMDSTAT = 0;
-
     // Disable USB interrupts
-    NVIC_DisableIRQ(USB_IRQn);
+    NVIC_DisableIRQ(USB_IRQ);
 }
 
 void USBHAL::connect(void) {
+    NVIC_EnableIRQ(USB_IRQ);
     devCmdStat |= DCON;
     LPC_USB->DEVCMDSTAT = devCmdStat;
 }
 
 void USBHAL::disconnect(void) {
+    NVIC_DisableIRQ(USB_IRQ);
     devCmdStat &= ~DCON;
     LPC_USB->DEVCMDSTAT = devCmdStat;
 }
 
 void USBHAL::configureDevice(void) {
+    // Not required
 }
 
 void USBHAL::unconfigureDevice(void) {
+    // Not required
 }
 
 void USBHAL::EP0setup(uint8_t *buffer) {
@@ -229,6 +251,11 @@ uint32_t USBHAL::EP0getReadResult(uint8_t *buffer) {
     // Copy data
     USBMemCopy(buffer, ct->out, bytesRead);
     return bytesRead;
+}
+
+
+void USBHAL::EP0readStage(void) {
+    // Not required
 }
 
 void USBHAL::EP0write(uint8_t *buffer, uint32_t size) {
@@ -302,10 +329,7 @@ EP_STATUS USBHAL::endpointReadResult(uint8_t endpoint, uint8_t *data, uint32_t *
 }
 
 void USBHAL::EP0getWriteResult(void) {
-    // Complete an endpoint 0 write
-
-    // Nothing required for this target
-    return;
+    // Not required
 }
 
 void USBHAL::EP0stall(void) {
@@ -384,8 +408,8 @@ EP_STATUS USBHAL::endpointWrite(uint8_t endpoint, uint8_t *data, uint32_t size) 
 
 EP_STATUS USBHAL::endpointWriteResult(uint8_t endpoint) {
     uint32_t bf;
+    
     // Validate parameters
-
     if (endpoint > LAST_PHYSICAL_ENDPOINT) {
         return EP_INVALID;
     }
@@ -421,8 +445,7 @@ EP_STATUS USBHAL::endpointWriteResult(uint8_t endpoint) {
 
 void USBHAL::stallEndpoint(uint8_t endpoint) {
 
-    // TODO: should this clear active bit?
-
+    // FIX: should this clear active bit?
     if (IN_EP(endpoint)) {
         ep[PHY_TO_LOG(endpoint)].in[0] |= CMDSTS_S;
         ep[PHY_TO_LOG(endpoint)].in[1] |= CMDSTS_S;
@@ -440,26 +463,26 @@ void USBHAL::unstallEndpoint(uint8_t endpoint) {
             ep[PHY_TO_LOG(endpoint)].in[1] = 0; // S = 0
 
             if (LPC_USB->EPINUSE & EP(endpoint)) {
-                ep[PHY_TO_LOG(endpoint)].in[1] = CMDSTS_TR; // S =0, TR=1, TV = 0
+                ep[PHY_TO_LOG(endpoint)].in[1] = CMDSTS_TR; // S = 0, TR = 1, TV = 0
             } else {
-                ep[PHY_TO_LOG(endpoint)].in[0] = CMDSTS_TR; // S =0, TR=1, TV = 0
+                ep[PHY_TO_LOG(endpoint)].in[0] = CMDSTS_TR; // S = 0, TR = 1, TV = 0
             }
         } else {
             ep[PHY_TO_LOG(endpoint)].out[0] = 0; // S = 0
             ep[PHY_TO_LOG(endpoint)].out[1] = 0; // S = 0
 
             if (LPC_USB->EPINUSE & EP(endpoint)) {
-                ep[PHY_TO_LOG(endpoint)].out[1] = CMDSTS_TR; // S =0, TR=1, TV = 0
+                ep[PHY_TO_LOG(endpoint)].out[1] = CMDSTS_TR; // S = 0, TR = 1, TV = 0
             } else {
-                ep[PHY_TO_LOG(endpoint)].out[0] = CMDSTS_TR; // S =0, TR=1, TV = 0
+                ep[PHY_TO_LOG(endpoint)].out[0] = CMDSTS_TR; // S = 0, TR = 1, TV = 0
             }
         }
     } else {
         // Single buffered
         if (IN_EP(endpoint)) {
-            ep[PHY_TO_LOG(endpoint)].in[0] = CMDSTS_TR; // S=0, TR=1, TV = 0
+            ep[PHY_TO_LOG(endpoint)].in[0] = CMDSTS_TR;     // S = 0, TR = 1, TV = 0
         } else {
-            ep[PHY_TO_LOG(endpoint)].out[0] = CMDSTS_TR; // S=0, TR=1, TV = 0
+            ep[PHY_TO_LOG(endpoint)].out[0] = CMDSTS_TR;    // S = 0, TR = 1, TV = 0
         }
     }
 }
@@ -657,55 +680,15 @@ void USBHAL::usbisr(void) {
         // EP0IN ACK event (IN data sent)
         EP0in();
     }
-
-    if (LPC_USB->INTSTAT & EP(EP1IN)) {
-        // Clear EP1IN interrupt
-        LPC_USB->INTSTAT = EP(EP1IN);
-        epComplete |= EP(EP1IN);
-        if (EP1_IN_callback())
-            epComplete &= ~EP(EP1IN);
-    }
-
-    if (LPC_USB->INTSTAT & EP(EP1OUT)) {
-        // Clear EP1OUT interrupt
-        LPC_USB->INTSTAT = EP(EP1OUT);
-        epComplete |= EP(EP1OUT);
-        if (EP1_OUT_callback())
-            epComplete &= ~EP(EP1OUT);
-    }
-
-    if (LPC_USB->INTSTAT & EP(EP2IN)) {
-        // Clear EPBULK_IN interrupt
-        LPC_USB->INTSTAT = EP(EP2IN);
-        epComplete |= EP(EP2IN);
-        if (EP2_IN_callback())
-            epComplete &= ~EP(EP2IN);
-    }
-
-    if (LPC_USB->INTSTAT & EP(EP2OUT)) {
-        // Clear EPBULK_OUT interrupt
-        LPC_USB->INTSTAT = EP(EP2OUT);
-        epComplete |= EP(EP2OUT);
-        //Call callback function. If true, clear epComplete
-        if (EP2_OUT_callback())
-            epComplete &= ~EP(EP2OUT);
-    }
-
-    if (LPC_USB->INTSTAT & EP(EP3IN)) {
-        // Clear EP3_IN interrupt
-        LPC_USB->INTSTAT = EP(EP3IN);
-        epComplete |= EP(EP3IN);
-        if (EP3_IN_callback())
-            epComplete &= ~EP(EP3IN);
-    }
-
-    if (LPC_USB->INTSTAT & EP(EP3OUT)) {
-        // Clear EP3_OUT interrupt
-        LPC_USB->INTSTAT = EP(EP3OUT);
-        epComplete |= EP(EP3OUT);
-        //Call callback function. If true, clear epComplete
-        if (EP3_OUT_callback())
-            epComplete &= ~EP(EP3OUT);
+    
+    for (uint8_t num = 2; num < 5*2; num++) {
+        if (LPC_USB->INTSTAT & EP(num)) {
+            LPC_USB->INTSTAT = EP(num);
+            epComplete |= EP(num);
+            if ((instance->*(epCallback[num - 2]))()) {
+                epComplete &= ~EP(num);
+            }
+        }
     }
 }
 
