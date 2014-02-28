@@ -17,6 +17,7 @@
 #include "modules/utils/configurator/Configurator.h"
 #include "modules/utils/currentcontrol/CurrentControl.h"
 #include "modules/utils/player/Player.h"
+#include "modules/utils/player/BufferedPlayer.h"
 #include "modules/utils/pausebutton/PauseButton.h"
 #include "modules/utils/PlayLed/PlayLed.h"
 #include "modules/utils/panel/Panel.h"
@@ -95,7 +96,7 @@ int main() {
     bool sdok= (sd.disk_initialize() == 0);
 
     // Create and add main modules
-    kernel->add_module( new Laser() );
+    //kernel->add_module( new Laser() );
     kernel->add_module( new ExtruderMaker() );
     kernel->add_module( new SimpleShell() );
     kernel->add_module( new Configurator() );
@@ -106,8 +107,9 @@ int main() {
     kernel->add_module( new PlayLed() );
     kernel->add_module( new Endstops() );
     kernel->add_module( new Player() );
+    kernel->add_module( new BufferedPlayer() );
     kernel->add_module( new Panel() );
-    kernel->add_module( new Touchprobe() );
+    //kernel->add_module( new Touchprobe() );
 #ifndef NONETWORK
     kernel->add_module( new Network() );
 #endif
