@@ -19,6 +19,8 @@
 #ifndef USBDEVICE_TYPES_H
 #define USBDEVICE_TYPES_H
 
+#include <cstdint>
+
 /* Standard requests */
 #define GET_STATUS        (0)
 #define CLEAR_FEATURE     (1)

@@ -34,6 +34,7 @@
 #include "libs/USBDevice/USBMSD/USBMSD.h"
 #include "libs/USBDevice/USBMSD/SDCard.h"
 #include "libs/USBDevice/USBSerial/USBSerial.h"
+#include "libs/USBDevice/USBHID/USBMessageStream.h"
 #include "libs/USBDevice/DFU.h"
 #include "libs/SDFAT.h"
 
@@ -53,6 +54,7 @@ SDCard sd(P0_9, P0_8, P0_7, P0_6);      // this selects SPI1 as the sdcard as it
 
 USB u;
 USBSerial usbserial(&u);
+USBMessageStream usbmessagestream;
 USBMSD msc(&u, &sd);
 //USBMSD *msc= NULL;
 DFU dfu(&u);
@@ -94,6 +96,7 @@ int main() {
 
     bool sdok= (sd.disk_initialize() == 0);
 
+
     // Create and add main modules
     kernel->add_module( new Laser() );
     kernel->add_module( new ExtruderMaker() );
@@ -124,7 +127,12 @@ int main() {
     // }
 
     kernel->add_module( &msc );
-    kernel->add_module( &usbserial );
+    //kernel->add_module( &usbserial );
+    kernel->add_module( &usbmessagestream );
+
+    //debug
+    kernel->streams->printf("loaded usbmessagestream\n");
+
     if( kernel->config->value( second_usb_serial_enable_checksum )->by_default(false)->as_bool() ){
         kernel->add_module( new USBSerial(&u) );
     }
